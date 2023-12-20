@@ -4,9 +4,6 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.checkbox import CheckBox
-'''from kivy.logger import Logger, LOG_LEVELS
-kivy.logger.setLevel("error")'''
-
 
 class Ex1(App):
     def __init__(self, **kwargs):
