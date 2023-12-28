@@ -45,7 +45,7 @@ def clean_backup_files(current_folder=".", backup_suffix=".bak"):
         except Exception as e:
             print(f"Erreur lors de la suppression du fichier de sauvegarde {backup_file}: {e}")
 
-def log_replacement(log_file, fichier, ligne, motif_recherche, motifs_remplacement):
+def log_replacement(log_file, fichier, motif_recherche, motifs_remplacement, modified_lines):
     """
     Enregistre un remplacement dans un fichier journal.
 
@@ -59,11 +59,13 @@ def log_replacement(log_file, fichier, ligne, motif_recherche, motifs_remplaceme
     """
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     motifs_str = ", ".join(motifs_remplacement)
-    log_entry = f"{timestamp} - Remplacement dans {fichier} (ligne {ligne}): {motif_recherche} par {motifs_str}\n"
 
-    # Ajoute l'entrée de journal au fichier de journal
+    # Ajoute l'entrée de journal pour chaque ligne modifiée
     with open(log_file, 'a') as log:
-        log.write(log_entry)
+        for line_number in modified_lines:
+            log_entry = f"{timestamp} - Remplacement dans {fichier} (ligne {line_number}): {motif_recherche} par {motifs_str}\n"
+            log.write(log_entry)
+
     print(f"Remplacement enregistré dans le journal des modifications.")
 
 def create_log_folder():
@@ -143,21 +145,24 @@ def do_recherche_remplacement():
             backup_file(fichier, incremental=args.incremental_backup, backup_folder=backup_folder, backup_prefix=args.backup_prefix)
 
             # Effectue la recherche et le remplacement dans le fichier
+            modified_lines = []
             with fileinput.FileInput(fichier, inplace=True, backup='.bak') as file:
                 for i, line in enumerate(file, start=1):
                     if args.ignore_case:
                         # Remplacement insensible à la casse
                         for motif_r, motif_rep in zip([motif_recherche], motifs_remplacement):
-                            line = line.replace(motif_r, motif_rep, -1 if args.replace_all else 1)
+                            line = line.replace(motif_r, str(motif_rep), -1 if args.replace_all else 1)
+                        modified_lines.append(i)
                         print(line, end='')
                     else:
                         # Remplacement sensible à la casse
-                        line = line.replace(motif_recherche, ' '.join(motifs_remplacement))
+                        line = line.replace(motif_recherche, ' '.join(map(str, motifs_remplacement)))
+                        modified_lines.append(i)
                         print(line, end='')
 
             # Enregistre le remplacement dans le journal des modifications
             log_file = os.path.join(log_folder, "log_replacement.txt")
-            log_replacement(log_file, fichier, i, motif_recherche, motifs_remplacement)
+            log_replacement(log_file, fichier, motif_recherche, motifs_remplacement, modified_lines)
 
             print(f"Opération de recherche et remplacement effectuée avec succès dans {fichier}")
 
